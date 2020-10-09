@@ -1,18 +1,39 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
-using System.Threading;
 using TvMaze.Data.Interfaces;
 
 namespace TvMaze.Data.Repositories
 {
-    public class ShowRepository : ITVShowRepository
+    public class TVMazeRepository : ITVMazeRepository
     {
-        private TvMazeContext _context;
-        public ShowRepository(TvMazeContext context)
+        private readonly TvMazeContext _context;
+        public TVMazeRepository(TvMazeContext context)
         {
             _context = context;
+        }
+
+        public void AddCastmembers(IEnumerable<Castmember> castmembers)
+        {
+            _context.Castmember.AddRange(castmembers);
+        }
+
+        public async Task<List<int>> GetCastmemberIdListAsync()
+        {
+            return await _context.Castmember.Select(p => p.Id).ToListAsync();
+        }
+
+        public void AddCastShowLinkage(IEnumerable<CastShowLinkage> CastShowLinkages)
+        {
+            _context.CastShowLinkage.AddRange(CastShowLinkages);
+        }
+
+        public async Task<List<CastShowLinkage>> GetCastShowLinkageAsync()
+        {
+            return await _context.CastShowLinkage.ToListAsync();
         }
 
         public void AddShow(TVShow Show)
@@ -51,11 +72,6 @@ namespace TvMaze.Data.Repositories
                 .ToList();
         }
 
-        public bool Save()
-        {
-            return (_context.SaveChanges() >= 0);
-        }
-
         public IEnumerable<TVShowModel> GetShowModels(int page, int size)
         {
             return _context.TVShows
@@ -68,6 +84,10 @@ namespace TvMaze.Data.Repositories
                    Name = s.Name,
                    Castmembers = s.CastShowLinkage.Select(c => c.Castmember).OrderByDescending(p => p.Birthday)
                });
+        }
+        public bool Save()
+        {
+            return (_context.SaveChanges() >= 0);
         }
     }
 }

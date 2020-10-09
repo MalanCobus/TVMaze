@@ -10,21 +10,19 @@ namespace TvMaze.Controllers
     [ApiController]
     public class TVShowController : ControllerBase
     {
-        private readonly ITVShowRepository _showRepository;
+        private readonly ITVMazeRepository _tvMazeRepository;
 
-        public TVShowController(ITVShowRepository showRepository)
+        public TVShowController(ITVMazeRepository tvMazeRepository)
         {
-            _showRepository = showRepository;
+            _tvMazeRepository = tvMazeRepository;
         }
 
         [HttpGet("{pageNumber}", Name = "Get")]
         [ProducesResponseType(typeof(IEnumerable<TVShowModel>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult Get(int pageNumber)
+        public IActionResult Get(int pageNumber, int pageSize = 50)
         {
-            return Ok(_showRepository.GetShowModels(pageNumber, 50));
+            return Ok(_tvMazeRepository.GetShowModels(pageNumber, pageSize));
         }
     }
 }

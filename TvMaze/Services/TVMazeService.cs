@@ -16,17 +16,13 @@ namespace TvMaze.Services
     {
         const string showUrl = "/shows";
         const string castUrl = "/shows/{0}/cast";
-        private readonly ITVShowRepository _tvShowRepository;
-        private readonly ICastmemberRepository _castmemberRepository;
-        private readonly ICastShowLinkageRepository _castShowLinkageRepository;
+        private readonly ITVMazeRepository _tvMazeRepository;
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
 
-        public TVMazeService(ITVShowRepository tvShowRepository, ICastmemberRepository castmemberRepository, ICastShowLinkageRepository castShowLinkageRepository, ILogger<TVMazeService> logger, HttpClient httpClient)
+        public TVMazeService(ITVMazeRepository tvMazeRepository, ILogger<TVMazeService> logger, HttpClient httpClient)
         {
-            _tvShowRepository = tvShowRepository;
-            _castmemberRepository = castmemberRepository;
-            _castShowLinkageRepository = castShowLinkageRepository;
+            _tvMazeRepository = tvMazeRepository;
             _httpClient = httpClient;
             _logger = logger;
         }
@@ -43,15 +39,15 @@ namespace TvMaze.Services
 
                     if (castList.Any())
                     {
-                        var exsitingLinkages = await _castShowLinkageRepository.GetCastShowLinkageAsync();
+                        var exsitingLinkages = await _tvMazeRepository.GetCastShowLinkageAsync();
                         var linkageList = castList.ToList().Select(cm => new CastShowLinkage() { CastmemberId = cm.Id, TVShowId = show.Id })
                             .Where(cm => !exsitingLinkages.Any(link => link.CastmemberId == cm.CastmemberId && link.TVShowId == cm.TVShowId))
                             .GroupBy(cm => new { cm.CastmemberId, cm.TVShowId }).Select(x => x.First());
 
-                        _tvShowRepository.AddShow(show);
-                        _castmemberRepository.AddCastmembers(castList);
-                        _castShowLinkageRepository.AddCastShowLinkage(linkageList);
-                        _tvShowRepository.Save();
+                        _tvMazeRepository.AddShow(show);
+                        _tvMazeRepository.AddCastmembers(castList);
+                        _tvMazeRepository.AddCastShowLinkage(linkageList);
+                        _tvMazeRepository.Save();
                     }
                 }
             }
@@ -71,7 +67,7 @@ namespace TvMaze.Services
         private async Task<IEnumerable<Castmember>> ProcessCastmembers(int showId)
         {
             var castList = await ScrapCastAsync(showId);
-            var existingCastList = await _castmemberRepository.GetCastmemberIdListAsync();
+            var existingCastList = await _tvMazeRepository.GetCastmemberIdListAsync();
 
             var CastmemberAddList = existingCastList.Any() ?
                 (castList.Where(s => !existingCastList.Contains(s.Id)).GroupBy(p => p.Id).Select(x => x.First())) :
@@ -82,12 +78,20 @@ namespace TvMaze.Services
 
         public async Task<IEnumerable<TVShow>> ScrapeShowsAsync()
         {
-            var response = await _httpClient.GetAsync(showUrl);
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var response = await _httpClient.GetAsync(showUrl);
+                response.EnsureSuccessStatusCode();
 
-            var result = await response.Content.ReadAsStringAsync();
-            var existingShowIds = await _tvShowRepository.GetShowIdListAsync();
-            return JsonConvert.DeserializeObject<IEnumerable<TVShow>>(result).Where(s => !existingShowIds.Contains(s.Id));
+                var result = await response.Content.ReadAsStringAsync();
+                var existingShowIds = await _tvMazeRepository.GetShowIdListAsync();
+                return JsonConvert.DeserializeObject<IEnumerable<TVShow>>(result).Where(s => !existingShowIds.Contains(s.Id));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                return new List<TVShow>();
+            }
         }
 
         public async Task<IEnumerable<Castmember>> ScrapCastAsync(int showid)

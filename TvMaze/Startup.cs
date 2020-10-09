@@ -53,9 +53,7 @@ namespace TvMaze
 
 
             services.AddHostedService<TimerService>();
-            services.AddScoped<ITVShowRepository, ShowRepository>();
-            services.AddScoped<ICastmemberRepository, PersonRepository>();
-            services.AddScoped<ICastShowLinkageRepository, ShowPersonRepository>();
+            services.AddScoped<ITVMazeRepository, TVMazeRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
